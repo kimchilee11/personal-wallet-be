@@ -1,12 +1,10 @@
-from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import TypeTransView
+from .views import TypeTransView, TransView
 
 router = DefaultRouter()
-router.register('', TypeTransView)
+router.register(r'types', TypeTransView)
+router.register(r'', TransView)
 
 
-urlpatterns = [
-    path('types/', include(router.urls)),
-]
+urlpatterns = router.urls

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from transaction.constants import ValueCurrency
 
 
 class Account(AbstractUser):
@@ -15,3 +16,4 @@ class User(models.Model):
     full_name = models.CharField(null=False, max_length=50, default='')
     address = models.CharField(null=True, max_length=50)
     total_money = models.DecimalField(max_digits=15, decimal_places=0)
+    currency_unit = models.CharField(null=False, max_length=100, choices=ValueCurrency.choices(), default=ValueCurrency.VND)

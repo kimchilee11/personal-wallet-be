@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 
     # 'google_oauth_app',
 
+    'rest_framework.authtoken',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
