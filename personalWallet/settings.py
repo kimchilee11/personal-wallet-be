@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
 
-    # 'google_oauth_app',
+    'saving_money',
 
     'rest_framework.authtoken',
     'allauth',

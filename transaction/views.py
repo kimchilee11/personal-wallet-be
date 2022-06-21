@@ -1,12 +1,13 @@
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
-from .serializers import TypeTransactionSerializer, TransactionSerializer, TransactionUpdateSerializer
+from .serializers import TypeTransactionSerializer, TransactionSerializer, TransactionUpdateSerializer, StatisticSerializer
 from .models import Transaction, TypeTransaction
 from django.db import transaction
 from users.models import User
 from users.serializers import UserSerializer
 from .constants import TransStatus
+import datetime
 import logging
 logger = logging.getLogger('ftpuploader')
 
@@ -14,6 +15,83 @@ logger = logging.getLogger('ftpuploader')
 class TypeTransView(viewsets.ModelViewSet):
     serializer_class = TypeTransactionSerializer
     queryset = TypeTransaction.objects.all()
+
+
+class StatisticsView(viewsets.ModelViewSet):
+    serializer_class = StatisticSerializer
+    queryset = Transaction.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.id
+        tran_info = Transaction.objects.filter(user_id=user_id)
+        tran_list = list(tran_info)
+
+        trans_week_1_up = []
+        trans_week_1_down = []
+        trans_week_2_up = []
+        trans_week_2_down = []
+        trans_month_1_up = []
+        trans_month_1_down = []
+        trans_month_2_up = []
+        trans_month_2_down = []
+
+        today = datetime.date.today()
+        week_day = today.weekday()
+        week_day_i = 7 - week_day - 1
+        first_day = today + datetime.timedelta(days=-week_day)
+        last_day = today + datetime.timedelta(days=week_day_i)
+
+        for i in tran_list:
+            seri_tran = StatisticSerializer(i).data
+            typ_up = TypeTransactionSerializer(seri_tran['type']).data['is_increased']
+            date = datetime.datetime.strptime(seri_tran['created_at'][2:10], '%y-%m-%d').date()
+            time = datetime.date(date.year, date.month, date.day)
+
+            if time.month == today.month:
+                if typ_up:
+                    trans_month_1_up.append(float(seri_tran['money']))
+                else:
+                    trans_month_1_down.append(float(seri_tran['money']))
+            if time.month == today.month - 1:
+                if typ_up:
+                    trans_month_2_up.append(float(seri_tran['money']))
+                else:
+                    trans_month_2_down.append(float(seri_tran['money']))
+            if first_day <= time <= last_day:
+                if typ_up:
+                    trans_week_1_up.append(float(seri_tran['money']))
+                else:
+                    trans_week_1_down.append(float(seri_tran['money']))
+            elif first_day + datetime.timedelta(days=-7) <= time <= last_day - + datetime.timedelta(days=7):
+                if typ_up:
+                    trans_week_2_up.append(float(seri_tran['money']))
+                else:
+                    trans_week_2_down.append(float(seri_tran['money']))
+
+        res_data = {
+            "week": {
+                "week_1": {
+                    "income": sum(trans_week_1_up),
+                    "expense": sum(trans_week_1_down),
+                },
+                "week_2": {
+                    "income": sum(trans_week_2_up),
+                    "expense": sum(trans_week_2_down),
+                },
+            },
+            "month": {
+                "month_1": {
+                    "income": sum(trans_week_1_up),
+                    "expense": sum(trans_week_1_down),
+                },
+                "month_2": {
+                    "income": sum(trans_month_2_up),
+                    "expense": sum(trans_month_2_down),
+                },
+            }
+        }
+
+        return Response(res_data, status=status.HTTP_200_OK)
 
 
 class TransView(viewsets.ModelViewSet):
@@ -156,3 +234,5 @@ class TransView(viewsets.ModelViewSet):
             transaction.rollback()
             return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(message, status=status.HTTP_200_OK)
+
+

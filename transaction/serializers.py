@@ -23,4 +23,10 @@ class TransactionUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ['id', 'name', 'money', 'type', 'user', 'status', 'note', 'currency_unit']
-        # depth = 1
+
+
+class StatisticSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = ['id', 'name', 'money', 'type', 'currency_unit', 'created_at']
+        depth = 1
