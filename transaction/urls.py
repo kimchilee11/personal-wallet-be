@@ -4,7 +4,7 @@ from .views import TypeTransView, TransView, StatisticsView
 
 router = DefaultRouter()
 router.register(r'statistics', StatisticsView)
-# router.register(r'types', TypeTransView)
+router.register(r'types', TypeTransView)
 router.register(r'', TransView)
 
 
