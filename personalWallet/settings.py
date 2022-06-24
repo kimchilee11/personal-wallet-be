@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-yg0s@8h&%tef@30k1iia5%v274#+o_a1vzt2w796z@-yq-st#6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'personal-wallet-be.herokuapp.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'personal-wallet-be.herokuapp.com', 'protected-depths-56003.herokuapp.com']
 
 # Application definition
 
