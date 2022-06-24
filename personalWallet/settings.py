@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-yg0s@8h&%tef@30k1iia5%v274#+o_a1vzt2w796z@-yq-st#6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'personal-wallet-be.herokuapp.com']
 
 # Application definition
 
@@ -110,8 +110,12 @@ WSGI_APPLICATION = 'personalWallet.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'dd8t3elc85p4dq',
+        'USER': 'rwpsgwvfosnord',
+        'PASSWORD': 'ae0460b078fcebcc30757f8bb9cb166b9a5deaba09e1df2097b1868cc9e0c558',
+        'HOST': 'ec2-23-23-151-191.compute-1.amazonaws.com',
+        'PORT': '5432',
     }
 }
 
