@@ -19,4 +19,3 @@ class SaveTrans(models.Model):
     status = models.BooleanField()
     created_at = models.DateTimeField(auto_now_add=True)
     original = models.ForeignKey(SavingMoney, on_delete=models.CASCADE)
-
