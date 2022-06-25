@@ -171,11 +171,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         user_id = request.user.id
-        user_info = User.objects.filter(id=user_id)
-        if user_info.exists() is not None:
-            user_info = user_info.first()
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        if user_info:
             user_info = UserSerializer(user_info).data
-            print(user_info)
             return Response(user_info, status=status.HTTP_200_OK)
         message = {
             "message": "Not found user",

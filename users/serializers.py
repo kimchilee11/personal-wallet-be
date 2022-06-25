@@ -15,6 +15,7 @@ class AccountGGSerializer(serializers.Serializer):
         models = Account
         fields = ['usename', 'id']
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
