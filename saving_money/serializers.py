@@ -10,6 +10,12 @@ class SavingMoneySerializer(serializers.ModelSerializer):
         depth = 1
 
 
+class SavingMoneyCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavingMoney
+        fields = ['id', 'name', 'budget', 'money_goal', 'saving_money', 'daily', 'status']
+
+
 class SavingMoneyTransSerializer(serializers.ModelSerializer):
     status = serializers.BooleanField(default=False)
 

@@ -1,7 +1,7 @@
 from rest_framework import viewsets
-from .serializers import SavingMoneySerializer, SavingMoneyTransSerializer
+from .serializers import SavingMoneySerializer, SavingMoneyTransSerializer, SavingMoneyCreateSerializer
 from .models import SavingMoney, SaveTrans
-from users.models import User
+from users.models import User, Account
 from users.serializers import UserSerializer
 from django.db import transaction
 from rest_framework.response import Response
@@ -36,10 +36,12 @@ class SavingMoneyView(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
         seri = self.serializer_class(data=request.data)
         seri.is_valid(raise_exception=True)
         data = seri.validated_data
-        data['user'] = user_id
+        data['user'] = UserSerializer(user_info).data['id']
 
         money = None
         try:
@@ -65,12 +67,13 @@ class SavingMoneyTransView(viewsets.ModelViewSet):
     queryset = SaveTrans.objects.all()
 
     def create(self, request, *args, **kwargs):
-        user_id = request.user.id
         seri = self.serializer_class(data=request.data)
         seri.is_valid(raise_exception=True)
         data = seri.validated_data
-        user = User.objects.filter(id=user_id).first()
-        money_user = float(UserSerializer(user).data['total_money']) - float(data['money'])
+        user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        money_user = float(UserSerializer(user_info).data['total_money']) - float(data['money'])
 
         if data['money'] > 0 and money_user >= 0:
             data['status'] = True
@@ -97,7 +100,6 @@ class SavingMoneyTransView(viewsets.ModelViewSet):
                     budget=up_money['budget'],
                     status=up_money['status']
                 )
-                print(data)
                 user = User.objects.filter(id=user_id)
                 if money_user < 0:
                     raise "Your wallet don't have enough money to implement transaction"
