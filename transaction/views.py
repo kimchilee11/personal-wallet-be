@@ -98,6 +98,12 @@ class TransView(viewsets.ModelViewSet):
     serializer_class = TransactionUpdateSerializer
     queryset = Transaction.objects.all()
 
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.id
+        trans = Transaction.objects.filter(user_id=user_id).values()
+        trans = [dict(q) for q in trans]
+        return Response(trans, status=status.HTTP_200_OK)
+
     def create(self, request, *args, **kwargs):
         serializer = TransactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -132,7 +138,8 @@ class TransView(viewsets.ModelViewSet):
                         currency_unit=data['currency_unit'],
                         status=data['status'],
                         note=data['note'],
-                        type_id=data['type']
+                        type_id=data['type'],
+                        created_at=data['created_at']
                     )
             else:
                 raise Exception('not exist user')
@@ -179,7 +186,6 @@ class TransView(viewsets.ModelViewSet):
                 if tran_info is not None:
                     query_set = Transaction.objects.filter(id=id_tran)
                     if query_set.exists():
-                        print(data)
                         query_set.update(
                             name=data['name'],
                             money=data['money'],
@@ -207,7 +213,6 @@ class TransView(viewsets.ModelViewSet):
         message = {
             "message": ""
         }
-        print(user_info)
         try:
             if tran_info.exists():
                 tran_info = tran_info.first()

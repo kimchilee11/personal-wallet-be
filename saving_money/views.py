@@ -15,6 +15,25 @@ class SavingMoneyView(viewsets.ModelViewSet):
     serializer_class = SavingMoneySerializer
     queryset = SavingMoney.objects.all()
 
+    def retrieve(self, request, *args, **kwargs):
+        trans_id = self.kwargs.get('pk')
+        tran_info = SavingMoney.objects.filter(id=trans_id).first()
+        tran_info = SavingMoneySerializer(tran_info).data
+        data = {
+            "saving_money": tran_info,
+            "trans_saving_money": []
+        }
+        if tran_info is None:
+            message = {
+                "message": "Note found saving money transaction"
+            }
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        trans = SaveTrans.objects.filter(original=trans_id).values()
+        trans = [dict(q) for q in trans]
+        data["trans_saving_money"] = trans
+        return Response(data, status=status.HTTP_200_OK)
+
     def create(self, request, *args, **kwargs):
         user_id = request.user.id
         seri = self.serializer_class(data=request.data)

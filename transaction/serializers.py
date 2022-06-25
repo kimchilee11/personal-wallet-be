@@ -15,14 +15,14 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ['id', 'name', 'money', 'type', 'user', 'status', 'note', 'currency_unit']
+        fields = ['id', 'name', 'money', 'type', 'user', 'status', 'note', 'currency_unit', 'created_at']
         depth = 1
 
 
 class TransactionUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id', 'name', 'money', 'type', 'user', 'status', 'note', 'currency_unit']
+        fields = ['id', 'name', 'money', 'type', 'user', 'status', 'note', 'currency_unit', 'created_at']
 
 
 class StatisticSerializer(serializers.ModelSerializer):

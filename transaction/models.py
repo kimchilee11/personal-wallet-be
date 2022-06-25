@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 from users.models import User
 from .constants import ValueCurrency, TransStatus
@@ -16,6 +18,6 @@ class Transaction(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     status = models.CharField(null=True, max_length=1000, choices=TransStatus.choices(), default=TransStatus.COMPLETED)
     note = models.CharField(null=True, max_length=1000)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

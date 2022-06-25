@@ -10,6 +10,11 @@ class AccountSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 
+class AccountGGSerializer(serializers.Serializer):
+    class Meta:
+        models = Account
+        fields = ['usename', 'id']
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
