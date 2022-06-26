@@ -12,6 +12,7 @@ class TypeTransactionSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     type = serializers.IntegerField()
     user = serializers.IntegerField(default=0)
+    note = serializers.CharField(default='ok', max_length=1000)
 
     class Meta:
         model = Transaction

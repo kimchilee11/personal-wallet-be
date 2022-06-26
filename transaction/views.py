@@ -162,7 +162,10 @@ class TransView(viewsets.ModelViewSet):
         serializer = TransactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        id_user = request.user.id
+        user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        id_user = UserSerializer(user_info).data['id']
         message = {
             "message": ""
         }
@@ -177,28 +180,25 @@ class TransView(viewsets.ModelViewSet):
                 tran_info = tran_info.first()
                 tran_info = TransactionUpdateSerializer(tran_info).data
 
-                if data['status'] == TransStatus.COMPLETED.name and tran_info['status'] == TransStatus.PENDING.name:
-                    type_tran = TypeTransaction.objects.filter(id=data['type'])
-                    type_tran = type_tran.first()
-                    type_tran = TypeTransactionSerializer(type_tran).data['is_increased']
-                    if type_tran:
-                        change = float(user_info['total_money']) + float(data['money'])
-                    else:
-                        if float(user_info['total_money']) < float(data['money']):
-                            raise Exception('This transaction is higher than money in your wallet')
-                        change = float(user_info['total_money']) - float(data['money'])
-                    User.objects.update(total_money=change)
-                if tran_info is not None:
-                    query_set = Transaction.objects.filter(id=id_tran)
-                    if query_set.exists():
-                        query_set.update(
-                            name=data['name'],
-                            money=data['money'],
-                            currency_unit=data['currency_unit'],
-                            status=data['status'],
-                            note=data['note'],
-                            type_id=data['type']
-                        )
+                type = TypeTransaction.objects.filter(id=data['type']).first()
+                type = TypeTransactionSerializer(type).data['is_increased']
+                if type:
+                    m = float(user_info['total_money']) - float(tran_info['money']) + float(data['money'])
+                else:
+                    m = float(user_info['total_money']) + float(tran_info['money']) - float(data['money'])
+
+                query_set = Transaction.objects.filter(id=tran_info['id'])
+                if query_set.exists():
+                    query_set.update(
+                        name=data['name'],
+                        money=data['money'],
+                        currency_unit=data['currency_unit'],
+                        status=data['status'],
+                        type_id=data['type']
+                    )
+                User.objects.filter(id=id_user).update(
+                        total_money=m
+                    )
             else:
                 raise Exception('not exist user')
 

@@ -15,6 +15,19 @@ class SavingMoneyView(viewsets.ModelViewSet):
     serializer_class = SavingMoneySerializer
     queryset = SavingMoney.objects.all()
 
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        id_user = UserSerializer(user_info).data['id']
+        tran_info = SavingMoney.objects.filter(user=id_user).values()
+        tran_info = [dict(q) for q in tran_info]
+
+        data = {
+            "box_money": tran_info,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
     def retrieve(self, request, *args, **kwargs):
         trans_id = self.kwargs.get('pk')
         tran_info = SavingMoney.objects.filter(id=trans_id).first()
