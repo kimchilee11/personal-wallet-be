@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .serializers import TypeTransactionSerializer, TransactionSerializer, TransactionUpdateSerializer, StatisticSerializer
 from .models import Transaction, TypeTransaction
 from django.db import transaction
-from users.models import User
+from users.models import User, Account
 from users.serializers import UserSerializer
 from .constants import TransStatus
 import datetime
@@ -100,6 +100,9 @@ class TransView(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        user_id = UserSerializer(user_info).data['id']
         trans = Transaction.objects.filter(user_id=user_id).values()
         trans = [dict(q) for q in trans]
         return Response(trans, status=status.HTTP_200_OK)
@@ -108,13 +111,15 @@ class TransView(viewsets.ModelViewSet):
         serializer = TransactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        id_user = request.user.id
-        data['user'] = id_user
+        user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        data['user'] = UserSerializer(user_info).data['id']
         message = {
             "message": ""
         }
         try:
-            user_info = User.objects.filter(id=id_user)
+            user_info = User.objects.filter(id=data['user'])
             if user_info.exists():
                 user_info = user_info.first()
                 user_info = UserSerializer(user_info).data
@@ -206,7 +211,10 @@ class TransView(viewsets.ModelViewSet):
         return Response(message, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        id_user = request.user.id
+        user_id = request.user.id
+        user_info = Account.objects.filter(id=user_id).first()
+        user_info = User.objects.filter(account=user_info).first()
+        id_user = UserSerializer(user_info).data['id']
         id_tran = self.kwargs.get('pk')
         tran_info = Transaction.objects.filter(id=id_tran)
         user_info = User.objects.filter(id=id_user)
