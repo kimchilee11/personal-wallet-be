@@ -74,13 +74,14 @@ class LoginUserViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             seri = serializer.validated_data
-            user = authenticate(
+            account = authenticate(
                 request,
                 username=seri['username'],
                 password=seri['password']
             )
-            if user:
-                refresh = TokenObtainPairSerializer.get_token(user)
+
+            if account:
+                refresh = TokenObtainPairSerializer.get_token(account)
                 data = {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),

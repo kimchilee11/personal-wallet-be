@@ -4,8 +4,7 @@ from rest_framework.response import Response
 from .serializers import TypeTransactionSerializer, TransactionSerializer, TransactionUpdateSerializer, StatisticSerializer
 from .models import Transaction, TypeTransaction
 from django.db import transaction
-from users.models import User, Account
-from users.serializers import UserSerializer
+from users.models import User
 from .constants import TransStatus
 import datetime
 import logging
@@ -22,9 +21,9 @@ class StatisticsView(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
 
     def list(self, request, *args, **kwargs):
-        user_id = request.user.id
-        tran_info = Transaction.objects.filter(user_id=user_id)
-        tran_list = list(tran_info)
+        account_id = request.user.id
+        user_id = User.objects.filter(account_id=account_id).first().id
+        transactions = Transaction.objects.filter(user_id=user_id)
 
         trans_week_1_up = []
         trans_week_1_down = []
@@ -41,9 +40,9 @@ class StatisticsView(viewsets.ModelViewSet):
         first_day = today + datetime.timedelta(days=-week_day)
         last_day = today + datetime.timedelta(days=week_day_i)
 
-        for i in tran_list:
-            seri_tran = StatisticSerializer(i).data
-            typ_up = TypeTransactionSerializer(seri_tran['type']).data['is_increased']
+        for tran in transactions:
+            seri_tran = StatisticSerializer().data
+            typ_up = tran.is_increased
             date = datetime.datetime.strptime(seri_tran['created_at'][2:10], '%y-%m-%d').date()
             time = datetime.date(date.year, date.month, date.day)
 
@@ -99,43 +98,35 @@ class TransView(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
 
     def list(self, request, *args, **kwargs):
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
-        user_id = UserSerializer(user_info).data['id']
+        account_id = request.user.id
+        user_id = User.objects.filter(account_id=account_id).first().id
         trans = Transaction.objects.filter(user_id=user_id).values()
-        trans = [dict(q) for q in trans]
         return Response(trans, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         serializer = TransactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
-        data['user'] = UserSerializer(user_info).data['id']
+        account_id = request.user.id
+        user_info = User.objects.filter(account_id=account_id).first()
         message = {
             "message": ""
         }
         try:
-            user_info = User.objects.filter(id=data['user'])
-            if user_info.exists():
-                user_info = user_info.first()
-                user_info = UserSerializer(user_info).data
+            if user_info:
+                data['user'] = user_info.id
 
                 if data['status'] == TransStatus.COMPLETED.name:
-                    type_tran = TypeTransaction.objects.filter(id=data['type'])
-                    type_tran = type_tran.first()
-                    type_tran = TypeTransactionSerializer(type_tran).data['is_increased']
+                    type_tran = TypeTransaction.objects.filter(id=data['type']).first()
+                    type_tran = type_tran.is_increased if type_tran else None
                     if type_tran:
-                        change = float(user_info['total_money']) + float(data['money'])
+                        change = float(user_info.total_money) + float(data['money'])
                     else:
-                        if float(user_info['total_money']) < float(data['money']):
+                        if float(user_info.total_money) < float(data['money']):
                             raise Exception('This transaction is higher than money in your wallet')
-                        change = float(user_info['total_money']) - float(data['money'])
+                        change = float(user_info.total_money) - float(data['money'])
                     User.objects.update(total_money=change)
-                if data is not None:
+                if data:
                     Transaction.objects.create(
                         name=data['name'],
                         money=data['money'],
@@ -152,6 +143,7 @@ class TransView(viewsets.ModelViewSet):
             message['message'] = 'successful'
         except Exception as e:
             logger.error('Error: ' + str(e))
+            logger.error('Error: ' + str(e))
             message["message"] = 'Error: ' + str(e)
             transaction.rollback()
             return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -162,32 +154,24 @@ class TransView(viewsets.ModelViewSet):
         serializer = TransactionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
-        id_user = UserSerializer(user_info).data['id']
-        message = {
-            "message": ""
-        }
+        account_id = request.user.id
+        user_info = User.objects.filter(account_id=account_id)
+        tran_info = Transaction.objects.filter(id=id_tran)
+        message = {"message": ""}
+
         try:
-            user_info = User.objects.filter(id=id_user)
-            tran_info = Transaction.objects.filter(id=id_tran)
 
             if user_info.exists() is not None and tran_info.exists() is not None:
                 user_info = user_info.first()
-                user_info = UserSerializer(user_info).data
-
                 tran_info = tran_info.first()
-                tran_info = TransactionUpdateSerializer(tran_info).data
-
                 type = TypeTransaction.objects.filter(id=data['type']).first()
-                type = TypeTransactionSerializer(type).data['is_increased']
-                if type:
-                    m = float(user_info['total_money']) - float(tran_info['money']) + float(data['money'])
-                else:
-                    m = float(user_info['total_money']) + float(tran_info['money']) - float(data['money'])
 
-                query_set = Transaction.objects.filter(id=tran_info['id'])
+                if type and type.is_increased:
+                    m = float(user_info.total_money) - float(tran_info.money) + float(data['money'])
+                else:
+                    m = float(user_info.total_money) + float(tran_info.money) - float(data['money'])
+
+                query_set = Transaction.objects.filter(id=tran_info.id)
                 if query_set.exists():
                     query_set.update(
                         name=data['name'],
@@ -196,9 +180,7 @@ class TransView(viewsets.ModelViewSet):
                         status=data['status'],
                         type_id=data['type']
                     )
-                User.objects.filter(id=id_user).update(
-                        total_money=m
-                    )
+                User.objects.filter(id=user_info.id).update(total_money=m)
             else:
                 raise Exception('not exist user')
 
@@ -211,36 +193,24 @@ class TransView(viewsets.ModelViewSet):
         return Response(message, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
-        id_user = UserSerializer(user_info).data['id']
-        id_tran = self.kwargs.get('pk')
-        tran_info = Transaction.objects.filter(id=id_tran)
-        user_info = User.objects.filter(id=id_user)
+        account_id = request.user.id
+        trans_id = self.kwargs.get('pk')
+        user_info = User.objects.filter(account_id=account_id).first()
+        tran_info = Transaction.objects.filter(id=trans_id).first()
         message = {
             "message": ""
         }
         try:
-            if tran_info.exists():
-                tran_info = tran_info.first()
-                tran_info = TransactionUpdateSerializer(tran_info).data
-
-                user_info = user_info.first()
-                user_info = UserSerializer(user_info).data
-
-                if tran_info['status'] == TransStatus.COMPLETED.name:
-                    type_tran = TypeTransaction.objects.filter(id=tran_info['type'])
-                    type_tran = type_tran.first()
-                    type_tran = TypeTransactionSerializer(type_tran).data['is_increased']
-                    if type_tran is False:
-                        change = float(user_info['total_money']) + float(tran_info['money'])
-                    else:
-                        if float(user_info['total_money']) < float(tran_info['money']):
-                            raise Exception('This transaction is higher than money in your wallet')
-                        change = float(user_info['total_money']) - float(tran_info['money'])
-                    User.objects.update(total_money=change)
-                Transaction.objects.filter(id=id_tran).delete()
+            if tran_info.status == TransStatus.COMPLETED.name:
+                type_tran = tran_info.type.is_increased
+                if type_tran:
+                    if float(user_info.total_money) < float(tran_info.money):
+                        raise Exception('This transaction is higher than money in your wallet')
+                    change = float(user_info.total_money) - float(tran_info.money)
+                else:
+                    change = float(user_info.total_money) + float(tran_info.money)
+            User.objects.filter(id=user_info.id).update(total_money=change)
+            Transaction.objects.filter(id=trans_id).delete()
         except Exception as e:
             logger.error('Error: ' + str(e))
             message["message"] = 'Error: ' + str(e)

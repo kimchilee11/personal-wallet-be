@@ -43,7 +43,6 @@ class SavingMoneyView(viewsets.ModelViewSet):
             return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         trans = SaveTrans.objects.filter(original=trans_id).values()
-        trans = [dict(q) for q in trans]
         data["trans_saving_money"] = trans
         return Response(data, status=status.HTTP_200_OK)
 
