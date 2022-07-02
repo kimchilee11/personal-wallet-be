@@ -5,6 +5,7 @@ from transaction.constants import ValueCurrency
 
 class Account(AbstractUser):
     username = models.CharField(unique=True, null=False, max_length=50, default='')
+    password = models.CharField(unique=False, null=True, max_length=200, default='')
     email = models.EmailField(unique=True, null=False, max_length=50, default='')
     created = models.DateTimeField(auto_now_add=True)
     login_with_gg = models.BooleanField(default=False)

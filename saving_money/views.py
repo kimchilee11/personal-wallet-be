@@ -1,8 +1,7 @@
 from rest_framework import viewsets
-from .serializers import SavingMoneySerializer, SavingMoneyTransSerializer, SavingMoneyCreateSerializer
+from .serializers import SavingMoneySerializer, SavingMoneyTransSerializer
 from .models import SavingMoney, SaveTrans
 from users.models import User, Account
-from users.serializers import UserSerializer
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework import status
@@ -16,11 +15,9 @@ class SavingMoneyView(viewsets.ModelViewSet):
     queryset = SavingMoney.objects.all()
 
     def list(self, request, *args, **kwargs):
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
-        id_user = UserSerializer(user_info).data['id']
-        tran_info = SavingMoney.objects.filter(user=id_user).values()
+        account_id = request.user.id
+        user_info = User.objects.filter(account_id=account_id).first()
+        tran_info = SavingMoney.objects.filter(user=user_info.id).values()
         tran_info = [dict(q) for q in tran_info]
 
         data = {
@@ -47,13 +44,12 @@ class SavingMoneyView(viewsets.ModelViewSet):
         return Response(data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
+        account_id = request.user.id
+        user_info = User.objects.filter(account_id=account_id).first()
         seri = self.serializer_class(data=request.data)
         seri.is_valid(raise_exception=True)
         data = seri.validated_data
-        data['user'] = UserSerializer(user_info).data['id']
+        data['user'] = user_info.id
 
         money = None
         try:
@@ -67,11 +63,10 @@ class SavingMoneyView(viewsets.ModelViewSet):
                     user_id=data['user']
                 )
                 money = SavingMoneySerializer(money[0])
-                money = money.data
         except Exception as e:
             logger.error('Failed to upload to ftp: ' + str(e))
             transaction.rollback()
-        return Response(money, status=status.HTTP_200_OK)
+        return Response(money.data, status=status.HTTP_200_OK)
 
 
 class SavingMoneyTransView(viewsets.ModelViewSet):
@@ -82,11 +77,11 @@ class SavingMoneyTransView(viewsets.ModelViewSet):
         seri = self.serializer_class(data=request.data)
         seri.is_valid(raise_exception=True)
         data = seri.validated_data
-        user_id = request.user.id
-        user_info = Account.objects.filter(id=user_id).first()
-        user_info = User.objects.filter(account=user_info).first()
-        money_user = float(UserSerializer(user_info).data['total_money']) - float(data['money'])
+        account_id = request.user.id
+        user_info = User.objects.filter(account_id=account_id).first()
+        money_user = float(user_info.total_money) - float(data['money'])
 
+        money = None
         if data['money'] > 0 and money_user >= 0:
             data['status'] = True
         try:
@@ -98,21 +93,17 @@ class SavingMoneyTransView(viewsets.ModelViewSet):
                     status=data['status'],
                     original=data['original'],
                 )
-                money = SavingMoneyTransSerializer(money[0])
-                money = money.data
+                original = data['original']
+                money_update = float(original.budget) + float(data['money'])
+                sta = False
+                if float(money_update) >= float(original.money_goal):
+                    sta = True
 
-            if data['original']:
-                money_update = float(SavingMoneySerializer(data['original']).data['budget']) + float(data['money'])
-                up_money = SavingMoneySerializer(data['original']).data
-                up_money['budget'] = money_update
-                if float(up_money['budget']) > float(up_money['money_goal']):
-                    up_money['status'] = True
-
-                SavingMoney.objects.filter(id=up_money['id']).update(
-                    budget=up_money['budget'],
-                    status=up_money['status']
+                SavingMoney.objects.filter(id=original.id).update(
+                    budget=money_update,
+                    status=sta
                 )
-                user = User.objects.filter(id=user_id)
+                user = User.objects.filter(id=user_info.id)
                 if money_user < 0:
                     raise "Your wallet don't have enough money to implement transaction"
                 user.update(
@@ -125,4 +116,4 @@ class SavingMoneyTransView(viewsets.ModelViewSet):
             transaction.rollback()
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response(money, status=status.HTTP_200_OK)
+        return Response('successful', status=status.HTTP_200_OK)

@@ -2,12 +2,11 @@ from django.contrib.auth import authenticate
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from personalWallet import settings
 from .serializers import GoogleSocialAuthSerializer
-from .serializers import UserSerializer, RegisterUserSerializer, AccountSerializer, MoneySerializer, AccountGGSerializer
+from .serializers import UserSerializer, RegisterUserSerializer, AccountSerializer, MoneySerializer
 from .models import Account, User
 from django.db import transaction
 import logging
@@ -20,41 +19,36 @@ class GoogleSocialAuthView(viewsets.ModelViewSet):
     queryset = User.objects.all()
 
     def create(self, request, *args, **kwargs):
-        print('hee')
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = ((serializer.validated_data)['auth_token'])
-        print(data)
         data['password']=''
         data['address']=''
-        user = None
         try:
             if data is not None:
-                hi = Account.objects.get_or_create(
+                account = Account.objects.get_or_create(
                     username=data['name'],
                     email=data['email'],
                     password=data['password'],
                     login_with_gg=True
                 )
-                print(hi)
-                user = User.objects.get_or_create(
-                    account=hi[0],
-                    avatar=data['picture'],
-                    full_name=data['name'],
-                    address=data['address'],
-                    total_money=0
-                )
-                print(user)
-                user = UserSerializer(user[0])
-            if user:
-                refresh = TokenObtainPairSerializer.get_token(user)
-                data = {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'access_expires': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
-                    'refresh_expires': int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
-                }
-                return Response(data, status=status.HTTP_200_OK)
+                if account[1]:
+                    user = User.objects.get_or_create(
+                        account=hi[0],
+                        avatar=data['picture'],
+                        full_name=data['name'],
+                        address=data['address'],
+                        total_money=0
+                    )
+                if account[0]:
+                    refresh = TokenObtainPairSerializer.get_token(account[0])
+                    data = {
+                        'refresh': str(refresh),
+                        'access': str(refresh.access_token),
+                        'access_expires': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+                        'refresh_expires': int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+                    }
+                    return Response(data, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error('Failed to register user: ' + str(e))
             response = {'message': 'Your username and email must be unique'}

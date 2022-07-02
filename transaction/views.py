@@ -41,43 +41,41 @@ class StatisticsView(viewsets.ModelViewSet):
         last_day = today + datetime.timedelta(days=week_day_i)
 
         for tran in transactions:
-            seri_tran = StatisticSerializer().data
-            typ_up = tran.is_increased
-            date = datetime.datetime.strptime(seri_tran['created_at'][2:10], '%y-%m-%d').date()
-            time = datetime.date(date.year, date.month, date.day)
+            typ_up = tran.type.is_increased
+            time = tran.created_at
 
             if time.month == today.month:
                 if typ_up:
-                    trans_month_1_up.append(float(seri_tran['money']))
+                    trans_month_1_up.append(float(tran.money))
                 else:
-                    trans_month_1_down.append(float(seri_tran['money']))
+                    trans_month_1_down.append(float(tran.money))
             if time.month == today.month - 1:
                 if typ_up:
-                    trans_month_2_up.append(float(seri_tran['money']))
+                    trans_month_2_up.append(float(tran.money))
                 else:
-                    trans_month_2_down.append(float(seri_tran['money']))
-            if first_day <= time <= last_day:
-                if typ_up:
-                    trans_week_1_up.append(float(seri_tran['money']))
-                else:
-                    trans_week_1_down.append(float(seri_tran['money']))
-            elif first_day + datetime.timedelta(days=-7) <= time <= last_day - + datetime.timedelta(days=7):
-                if typ_up:
-                    trans_week_2_up.append(float(seri_tran['money']))
-                else:
-                    trans_week_2_down.append(float(seri_tran['money']))
+                    trans_month_2_down.append(float(tran.money))
+            # if first_day <= time.date() <= last_day:
+            #     if typ_up:
+            #         trans_week_1_up.append(float(tran.money))
+            #     else:
+            #         trans_week_1_down.append(float(tran.money))
+            # elif first_day + datetime.timedelta(days=-7) <= time <= last_day - + datetime.timedelta(days=7):
+            #     if typ_up:
+            #         trans_week_2_up.append(float(tran.money))
+            #     else:
+            #         trans_week_2_down.append(float(tran.money))
 
         res_data = {
-            "week": {
-                "week_1": {
-                    "income": sum(trans_week_1_up),
-                    "expense": sum(trans_week_1_down),
-                },
-                "week_2": {
-                    "income": sum(trans_week_2_up),
-                    "expense": sum(trans_week_2_down),
-                },
-            },
+            # "week": {
+            #     "week_1": {
+            #         "income": sum(trans_week_1_up),
+            #         "expense": sum(trans_week_1_down),
+            #     },
+            #     "week_2": {
+            #         "income": sum(trans_week_2_up),
+            #         "expense": sum(trans_week_2_down),
+            #     },
+            # },
             "month": {
                 "month_1": {
                     "income": sum(trans_week_1_up),
